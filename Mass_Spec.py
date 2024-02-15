@@ -5,6 +5,8 @@ from tkinter import filedialog
 from tkinter import ttk
 import os
 import requests
+from datetime import datetime
+import csv
 
 class HomeWindow(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
@@ -15,11 +17,11 @@ class HomeWindow(tk.Frame):
         self.password = tk.StringVar()
         self.location = tk.StringVar()
         self.operator = tk.StringVar()
+        self.rack_number = tk.IntVar()
+        self.inj_volume = tk.IntVar()
 
         error1 = os.environ.get("error1")
         error2 = os.environ.get("error2")
-        print(error1)
-        print(error2)
 
         if not error1 and not error2:
             # Create widgets for the main page
@@ -52,6 +54,18 @@ class HomeWindow(tk.Frame):
         entry_operator = tk.Entry(self, textvariable=self.operator)
         entry_operator.pack()
 
+        label_rack_number = tk.Label(self, text="Number of places in racks:")
+        label_rack_number.pack()
+        entry_rack_number = tk.Entry(self, textvariable=self.rack_number)
+        self.rack_number.set("54")  # Default value
+        entry_rack_number.pack()
+
+        label_inj_volume = tk.Label(self, text="Injection volume (in µL):")
+        label_inj_volume.pack()
+        entry_inj_volume = tk.Entry(self, textvariable=self.inj_volume)
+        self.inj_volume.set("2") # Default value
+        entry_inj_volume.pack()
+
         output_label = tk.Label(self, text="Select the output path for the sample list")
         output_label.pack()
         output_button = tk.Button(self, text="select path", command=self.output_folder)
@@ -68,20 +82,27 @@ class HomeWindow(tk.Frame):
         os.environ['username'] = self.username.get()
         os.environ['password'] = self.password.get()
         os.environ['operator'] = self.operator.get()
+        os.environ['rack_number'] = str(self.rack_number.get())
+        os.environ['inj_volume'] = str(self.inj_volume.get())
         self.testConnection()
         self.master.destroy()
 
     def open_CsvWindow(self):
-        # Hide the main page and open Window 3
+        # Hide the main page
         self.pack_forget()
-        CsvWindow()
+
+        output_folder = os.environ.get("output_folder")
+        csv_window = CsvWindow(root=window, csv_path=f"{output_folder}/generated_sample_list.csv")
+        csv_window.pack()
         
     def testConnection(self):
         username = os.environ.get("username")
         password = os.environ.get("password")
         output_folder = os.environ.get("output_folder")
+        rack_number = os.environ.get("rack_number")
+        inj_volume = os.environ.get("inj_volume")
 
-        if username and password and output_folder:
+        if username and password and output_folder and rack_number and inj_volume:
             # Define the Directus base URL
             base_url = 'http://directus.dbgi.org'
 
@@ -128,57 +149,131 @@ from tkinter import ttk
 import tkinter as tk
 from tkinter import ttk
 
-class CsvWindow(tk.Tk):
-    def __init__(self):
-        super().__init__()
+class CsvWindow:
+    def __init__(self, root, csv_path):
+        self.root = root
+        self.root.title("Mass spec sample list")
 
-        self.title("Mass spec data:")
-        self.minsize(600, 400)
+        self.operator = os.environ.get("operator")
+        self.rack_size = int(os.environ.get("rack_number"))
+        self.inj_volume = int(os.environ.get("inj_volume"))
+        self.access_token = os.environ.get("access_token")
+        self.csv_path = csv_path
+        self.current_position = 1
+        self.current_box = 1
 
-        # Create a Treeview widget
-        self.tree = ttk.Treeview(self, columns=("aliquot_id", "operator", "mass_spec_id"), show="headings")
-        
-        # Set the column headings
+        # Create Treeview widget
+        self.tree = ttk.Treeview(root, columns=("aliquot_id", "operator", "filename", "path", "instrument_method", "position", "inj_volume", "directus_status"), show="headings", selectmode="browse")
         self.tree.heading("aliquot_id", text="aliquot_id")
         self.tree.heading("operator", text="operator")
-        self.tree.heading("mass_spec_id", text="mass_spec_id")
+        self.tree.heading("filename", text="filename")
+        self.tree.heading("path", text="path")
+        self.tree.heading("instrument_method", text="instrument_method")
+        self.tree.heading("position", text="position")
+        self.tree.heading("inj_volume", text="inj_volume")
+        self.tree.heading("directus_status", text="directus_status")
 
-        # Set the column widths
-        self.tree.column("aliquot_id", width=100)
-        self.tree.column("operator", width=100)
-        self.tree.column("mass_spec_id", width=100)
+        # Bind Enter key to add row
+        self.root.bind("<Return>", self.add_row)
 
-        # Bind events to update the values when editing
-        self.tree.bind("<ButtonRelease-1>", self.edit_item)
-        self.tree.bind("<Return>", self.edit_item)
+        # Entry widgets for data input
+        self.aliquot_id_entry = ttk.Entry(root)
 
-        # Insert a blank row with Entry widgets in the aliquot_id column
-        entry_aliquot_id = ttk.Entry(self.tree)
-        self.tree.insert("", "end", values=(entry_aliquot_id, " ", " "))
+        # Submit button
+        submit_button = ttk.Button(root, text="Submit", command=self.submit_table)
 
-        # Pack the Treeview widget
-        self.tree.pack(pady=10)
+        # Grid layout for widgets
+        self.tree.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
+        self.aliquot_id_entry.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        submit_button.grid(row=2, column=0, columnspan=2, pady=10)
 
-        # Add a button to insert a new row
-        insert_button = ttk.Button(self, text="Insert Row", command=self.insert_row)
-        insert_button.pack(pady=10)
+    def add_row(self, event=None):
+        # Get data from entry widgets
+        aliquot_id = self.aliquot_id_entry.get()
 
-    def insert_row(self):
-        # Insert a blank row with Entry widgets in the aliquot_id column
-        entry_aliquot_id = ttk.Entry(self.tree)
-        self.tree.insert("", "end", values=(entry_aliquot_id, " ", " "))
+        # Check if aliquot_id is not empty
+        if not aliquot_id:
+            # Display an error message or handle it as needed
+            print("Error: Aliquot ID cannot be empty!")
+            return
 
-    def edit_item(self, event):
-        # Get the selected item
-        item = self.tree.selection()
+        # Placeholder calculations for other columns
+        operator = self.operator
+        filename = datetime.now().strftime("%Y%m%d") + "_" + self.operator + "_" + aliquot_id
+        path = ""
+        instrument_method = ""
+        position = f"pos {self.current_position} in box {self.current_box}"
+        inj_volume = self.inj_volume
 
-        if item:
-            # Get the values from the selected item
-            values = [entry.get() if isinstance(entry, ttk.Entry) else entry for entry in self.tree.item(item, 'values')]
+        # Update position and box for the next row
+        self.current_position += 1
+        if self.current_position > self.rack_size:
+            self.current_position = 1
+            self.current_box += 1
 
-            # Update the Treeview with the edited values
-            self.tree.item(item, values=values)
+        # Send data to directus
+        base_url = 'http://directus.dbgi.org'
+        collection_url = base_url + '/items/Mass_Spectrometry_Analysis'
+        session = requests.Session()
+        session.headers.update({'Authorization': f'Bearer {self.access_token}'})
 
+        #Add headers
+        headers = {'Content-Type': 'application/json'}
+
+        data = {'aliquot_id': aliquot_id,
+                'mass_spec_id': filename,
+                'injection_volume': inj_volume,
+                'injection_method': ""}
+        
+        response = session.post(url=collection_url, headers=headers, json=data)
+
+        if response.status_code == 200:
+            directus_status = "OK"
+            status_tag = "ok_tag"  # Tag for OK status
+        else:
+            directus_status = "Error"
+            status_tag = "error_tag"  # Tag for Error status
+
+        # Insert data into Treeview
+        item_id = self.tree.insert("", "end", values=(aliquot_id, operator, filename, path, instrument_method, position, inj_volume, directus_status))
+
+        # Scroll to the last added row
+        self.tree.see(item_id)
+
+        # Add tags to customize text color
+        self.tree.tag_configure("ok_tag", foreground="green")
+        self.tree.tag_configure("error_tag", foreground="red")
+
+        # Apply the tag to the status column
+        self.tree.item(item_id, tags=(status_tag,))
+
+        # Clear entry widgets
+        self.aliquot_id_entry.delete(0, "end")
+
+    def submit_table(self):
+        # Get all items from the Treeview
+        all_items = self.tree.get_children()
+
+        # Check if there are any rows to export
+        if not all_items:
+            print("No data to export.")
+            return
+
+        # Extract data from the Treeview
+        data_to_export = [self.tree.item(item, 'values') for item in all_items]
+
+        # Write data to the CSV file
+        with open(self.csv_path, "w", newline="") as csv_file:
+            csv_writer = csv.writer(csv_file)
+            # Write header
+            csv_writer.writerow(["aliquot_id", "operator", "filename", "path", "instrument_method", "position", "inj_volume"])
+            # Write data
+            csv_writer.writerows(data_to_export)
+
+        print(f"CSV file created: {self.csv_path}")
+
+        # Close the Tkinter window
+        self.root.destroy()
 
 
 # Create the main window
