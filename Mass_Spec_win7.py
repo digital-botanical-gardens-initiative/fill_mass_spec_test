@@ -17,7 +17,8 @@ class HomeWindow(tk.Frame):
         self.password = tk.StringVar()
         self.location = tk.StringVar()
         self.operator = tk.StringVar()
-        self.rack_number = tk.IntVar()
+        self.col_rack_number = tk.IntVar()
+        self.row_rack_number = tk.IntVar()
         self.inj_volume = tk.IntVar()
 
         error1 = os.environ.get("error1")
@@ -54,11 +55,17 @@ class HomeWindow(tk.Frame):
         entry_operator = tk.Entry(self, textvariable=self.operator)
         entry_operator.pack()
 
-        label_rack_number = tk.Label(self, text="Number of places in racks:")
-        label_rack_number.pack()
-        entry_rack_number = tk.Entry(self, textvariable=self.rack_number)
-        self.rack_number.set("54")  # Default value
-        entry_rack_number.pack()
+        label_col_rack_number = tk.Label(self, text="Number of columns in racks:")
+        label_col_rack_number.pack()
+        entry_col_rack_number = tk.Entry(self, textvariable=self.col_rack_number)
+        self.col_rack_number.set("9")  # Default value
+        entry_col_rack_number.pack()
+
+        label_row_rack_number = tk.Label(self, text="Number of places in racks:")
+        label_row_rack_number.pack()
+        entry_row_rack_number = tk.Entry(self, textvariable=self.row_rack_number)
+        self.row_rack_number.set("6")  # Default value
+        entry_row_rack_number.pack()
 
         label_inj_volume = tk.Label(self, text="Injection volume (in µL):")
         label_inj_volume.pack()
@@ -82,7 +89,8 @@ class HomeWindow(tk.Frame):
         os.environ['username'] = self.username.get()
         os.environ['password'] = self.password.get()
         os.environ['operator'] = self.operator.get()
-        os.environ['rack_number'] = str(self.rack_number.get())
+        os.environ['col_rack_number'] = str(self.col_rack_number.get())
+        os.environ['row_rack_number'] = str(self.row_rack_number.get())
         os.environ['inj_volume'] = str(self.inj_volume.get())
         self.testConnection()
         self.master.destroy()
@@ -91,18 +99,21 @@ class HomeWindow(tk.Frame):
         # Hide the main page
         self.pack_forget()
 
+        operator = os.environ.get("operator")
+
         output_folder = os.environ.get("output_folder")
-        csv_window = CsvWindow(root=window, csv_path=f"{output_folder}/generated_sample_list.csv")
+        csv_window = CsvWindow(root=window, csv_path=f"{output_folder}/{datetime.now().strftime('%Y%m%d%H%M')}_{operator}_dbgi_pos.csv")
         csv_window.pack()
         
     def testConnection(self):
         username = os.environ.get("username")
         password = os.environ.get("password")
         output_folder = os.environ.get("output_folder")
-        rack_number = os.environ.get("rack_number")
+        col_rack_number = os.environ.get("col_rack_number")
+        row_rack_number = os.environ.get("row_rack_number")
         inj_volume = os.environ.get("inj_volume")
 
-        if username and password and output_folder and rack_number and inj_volume:
+        if username and password and output_folder and col_rack_number and row_rack_number and inj_volume:
             # Define the Directus base URL
             base_url = 'http://directus.dbgi.org'
 
@@ -143,35 +154,29 @@ class HomeWindow(tk.Frame):
             main_page.pack()
             window.mainloop()
 
-import tkinter as tk
-from tkinter import ttk
-
-import tkinter as tk
-from tkinter import ttk
-
 class CsvWindow:
     def __init__(self, root, csv_path):
         self.root = root
         self.root.title("Mass spec sample list")
 
         self.operator = os.environ.get("operator")
-        self.rack_size = int(os.environ.get("rack_number"))
+        self.col_rack_size = int(os.environ.get("col_rack_number"))
+        self.row_rack_size = int(os.environ.get("row_rack_number"))
         self.inj_volume = int(os.environ.get("inj_volume"))
         self.access_token = os.environ.get("access_token")
         self.csv_path = csv_path
         self.current_position = 1
-        self.current_box = 1
+        self.current_row = 1
 
         # Create Treeview widget
-        self.tree = ttk.Treeview(root, columns=("directus_status", "aliquot_id", "operator", "filename", "path", "instrument_method", "position", "inj_volume"), show="headings", selectmode="browse")
-        self.tree.heading("directus_status", text="directus_status")
+        self.tree = ttk.Treeview(root, columns=("aliquot_id", "operator", "File Name", "Path", "Instrument Method", "Position", "Inj Vol"), show="headings", selectmode="browse")
         self.tree.heading("aliquot_id", text="aliquot_id")
         self.tree.heading("operator", text="operator")
-        self.tree.heading("filename", text="filename")
-        self.tree.heading("path", text="path")
-        self.tree.heading("instrument_method", text="instrument_method")
-        self.tree.heading("position", text="position")
-        self.tree.heading("inj_volume", text="inj_volume")
+        self.tree.heading("File Name", text="File Name")
+        self.tree.heading("Path", text="Path")
+        self.tree.heading("Instrument Method", text="Instrument Method")
+        self.tree.heading("Position", text="Position")
+        self.tree.heading("Inj Vol", text="Inj Vol")
 
         # Bind Enter key to add row
         self.root.bind("<Return>", self.add_row)
@@ -179,13 +184,23 @@ class CsvWindow:
         # Entry widgets for data input
         self.aliquot_id_entry = ttk.Entry(root)
 
+        # Error text hidden:
+        self.label = ttk.Label(text="")
+        self.label.grid(row=2, column=0, columnspan=2, pady=10)
+
+        # Delete line button
+        delete_button = ttk.Button(root, text="Delete selected line", command=self.delete_line)
+
         # Submit button
-        submit_button = ttk.Button(root, text="Submit", command=self.submit_table)
+        submit_button = ttk.Button(root, text="Generate sample list", command=self.submit_table)
 
         # Grid layout for widgets
         self.tree.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
         self.aliquot_id_entry.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        submit_button.grid(row=2, column=0, columnspan=2, pady=10)
+        delete_button.grid(row=3, column=0, columnspan=2, pady=10)
+        submit_button.grid(row=3, column=1, columnspan=2, pady=10)
+        
+        
 
     def add_row(self, event=None):
         # Get data from entry widgets
@@ -199,19 +214,14 @@ class CsvWindow:
 
         # Placeholder calculations for other columns
         operator = self.operator
-        filename = datetime.now().strftime("%Y%m%d") + "_" + self.operator + "_" + aliquot_id
-        path = ""
-        instrument_method = ""
-        position = f"pos {self.current_position} in box {self.current_box}"
+        filename = datetime.now().strftime("%Y%m%d%H%M") + "_" + self.operator + "_" + aliquot_id
+        path = "C:\Xcalibur\Data"
+        instrument_method = r"C:\Xcalibur\methods\new_methods\Metabo_MAPP\100mm_C18_15min_DDA_ELON_pos"
+        position = f"pos {self.current_position} in box {self.current_row}"
         inj_volume = self.inj_volume
 
-        # Update position and box for the next row
-        self.current_position += 1
-        if self.current_position > self.rack_size:
-            self.current_position = 1
-            self.current_box += 1
-
         # Send data to directus
+        print(self.access_token)
         base_url = 'http://directus.dbgi.org'
         collection_url = base_url + '/items/Mass_Spectrometry_Analysis'
         session = requests.Session()
@@ -223,48 +233,63 @@ class CsvWindow:
         data = {'aliquot_id': aliquot_id,
                 'mass_spec_id': filename,
                 'injection_volume': inj_volume,
-                'injection_method': ""}
+                'injection_method': "100mm_C18_15min_DDA_ELON_pos"}
         
         response = session.post(url=collection_url, headers=headers, json=data)
+        print(response.status_code)
 
+        self.label.config(text="")
+    
         if response.status_code == 200:
-            directus_status = "Added to directus!"
+            # Update position and box for the next row
+            if self.current_position == 1 and self.current_row == 1:
+                print("should diplay a box to add prefix")
+
+            self.current_position += 1
+        
+            if self.current_position > self.col_rack_size:
+                self.current_position = 1
+                self.current_row += 1
+            elif self.current_row > self.row_rack_size:
+                    self.current_position = 1
+                    self.current_row = 1
+
+            # display success message
+            self.label.config(text="Correctly added!", foreground="green")
+            # Insert data into Treeview
+            item_id = self.tree.insert("", "end", values=(aliquot_id, operator, filename, path, instrument_method, position, inj_volume))
+
+            # Scroll to the last added row
+            self.tree.see(item_id)
+
+            # Clear entry widgets
+            self.aliquot_id_entry.delete(0, "end")
+
+        # Catches forbidden access when token is expired and generates a new token
+        elif response.status_code == 401:
+            self.directus_reconnect()
         else:
-            directus_status = f"Error for {aliquot_id} pos {self.current_position} in box {self.current_box}!"
-            operator = "!!!"
-            filename = "!!!"
-            path = "!!!"
-            instrument_method = "!!!"
-            position = "!!!"
-            inj_volume = "!!!"
+            self.label.config(text="Directus error, check your entry!", foreground="red")
 
-
-        # Insert data into Treeview
-        item_id = self.tree.insert("", "end", values=(directus_status, aliquot_id, operator, filename, path, instrument_method, position, inj_volume))
-
-        # Scroll to the last added row
-        self.tree.see(item_id)
-
-        # Clear entry widgets
-        self.aliquot_id_entry.delete(0, "end")
+    def delete_line(self):
+        print("delete line")
 
     def submit_table(self):
         # Get all items from the Treeview
         all_items = self.tree.get_children()
-
         # Check if there are any rows to export
         if not all_items:
             print("No data to export.")
             return
 
         # Extract data from the Treeview
-        data_to_export = [self.tree.item(item, 'values') for item in all_items]
+        data_to_export = [self.tree.item(item, 'values')[2:] for item in all_items]  # Skip the first two elements
 
         # Write data to the CSV file
         with open(self.csv_path, "w", newline="") as csv_file:
             csv_writer = csv.writer(csv_file)
             # Write header
-            csv_writer.writerow(["aliquot_id", "operator", "filename", "path", "instrument_method", "position", "inj_volume"])
+            csv_writer.writerow(["File Name", "Path", "Instrument Method", "Position", "Inj Vol"])
             # Write data
             csv_writer.writerows(data_to_export)
 
@@ -272,6 +297,30 @@ class CsvWindow:
 
         # Close the Tkinter window
         self.root.destroy()
+
+    def directus_reconnect(self):
+        username = os.environ.get("username")
+        password = os.environ.get("password")
+
+        # Define the Directus base URL
+        base_url = 'http://directus.dbgi.org'
+
+        # Define the login endpoint URL
+        login_url = base_url + '/auth/login'
+        # Create a session object for making requests
+        session = requests.Session()
+        # Send a POST request to the login endpoint
+        response = session.post(login_url, json={'email': username, 'password': password})
+        
+        if response.status_code == 200:
+            data = response.json()['data']
+            self.access_token = data['access_token']
+            self.root.event_generate('<Return>')
+            
+        else:
+            # Print error statement
+            print("Reconnexion to directus failed")
+
 
 
 # Create the main window
