@@ -217,11 +217,9 @@ class CsvWindow:
         filename = datetime.now().strftime("%Y%m%d%H%M") + "_" + self.operator + "_" + aliquot_id
         path = "C:\Xcalibur\Data"
         instrument_method = r"C:\Xcalibur\methods\new_methods\Metabo_MAPP\100mm_C18_15min_DDA_ELON_pos"
-        position = f"pos {self.current_position} in box {self.current_row}"
         inj_volume = self.inj_volume
 
         # Send data to directus
-        print(self.access_token)
         base_url = 'http://directus.dbgi.org'
         collection_url = base_url + '/items/Mass_Spectrometry_Analysis'
         session = requests.Session()
@@ -236,23 +234,36 @@ class CsvWindow:
                 'injection_method': "100mm_C18_15min_DDA_ELON_pos"}
         
         response = session.post(url=collection_url, headers=headers, json=data)
-        print(response.status_code)
 
         self.label.config(text="")
     
         if response.status_code == 200:
-            # Update position and box for the next row
-            if self.current_position == 1 and self.current_row == 1:
-                print("should diplay a box to add prefix")
+            # Check if it is the first run or not the first position in the rack
+            if (self.current_position > self.col_rack_size and self.current_position > self.col_rack_size) or (self.current_position == 1 and self.current_row == 1):
+                # Open window to ask prefix
+                ask_prefix_window = tk.Toplevel(self.root)
+                ask_prefix_window.title("Add Prefix")
+                self.ask_box = AskBoxPrefixWindow(ask_prefix_window)
+                self.ask_box.pack()
 
+                # Make CsvWindow wait for AskBoxPrefixWindow result
+                ask_prefix_window.transient(self.root)
+                ask_prefix_window.wait_window(self.ask_box)
+
+            prefix = os.environ.get("prefix")
+            alphabet_letter = chr(ord('A') + self.current_row - 1)
+            position = f"{prefix}{alphabet_letter}{self.current_position}"
+
+            # Update position and box for the next row
             self.current_position += 1
-        
             if self.current_position > self.col_rack_size:
                 self.current_position = 1
                 self.current_row += 1
-            elif self.current_row > self.row_rack_size:
-                    self.current_position = 1
-                    self.current_row = 1
+
+            # Check if the rack is full
+            if self.current_row > self.row_rack_size:
+                self.current_position = 1
+                self.current_row = 1
 
             # display success message
             self.label.config(text="Correctly added!", foreground="green")
@@ -321,6 +332,32 @@ class CsvWindow:
             # Print error statement
             print("Reconnexion to directus failed")
 
+class AskBoxPrefixWindow(tk.Frame):
+    def __init__(self, root):
+        tk.Frame.__init__(self, root)
+
+        self.prefix = tk.StringVar()
+
+        # Adjust the window size
+        root.geometry("300x150")  # Set the desired width and height
+
+        # Label + textbox to enter prefix
+        label_prefix = tk.Label(self, text="Box's prefix:")
+        label_prefix.pack()
+
+        entry_prefix = tk.Entry(self, textvariable=self.prefix)
+        entry_prefix.pack()
+
+        # Submit button
+        button_submit = tk.Button(self, text="Submit", command=self.store_prefix)
+        button_submit.pack()
+
+    def store_prefix(self):
+        os.environ['prefix'] = self.prefix.get()
+
+        # Close the AskBoxPrefixWindow
+        self.master.destroy()
+        
 
 
 # Create the main window
