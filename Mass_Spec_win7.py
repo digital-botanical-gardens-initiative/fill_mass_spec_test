@@ -1,4 +1,4 @@
-# To convert this script into a .exe file: pyinstaller --onefile Mass_Spec.py in anaconda prompt
+# To convert this script into a .exe file: pyinstaller --onefile Mass_Spec_win7.py in anaconda prompt
 
 import tkinter as tk
 from tkinter import filedialog
@@ -15,8 +15,8 @@ class HomeWindow(tk.Frame):
         # Create a variable to store the entered text
         self.username = tk.StringVar()
         self.password = tk.StringVar()
-        self.location = tk.StringVar()
         self.operator = tk.StringVar()
+        self.ms_id = tk.StringVar()
         self.col_rack_number = tk.IntVar()
         self.row_rack_number = tk.IntVar()
         self.inj_volume = tk.IntVar()
@@ -40,55 +40,134 @@ class HomeWindow(tk.Frame):
 
 
         # Create text entry fields
-        label_username = tk.Label(self, text="Your directus username:")
-        label_username.pack()
-        entry_username = tk.Entry(self, textvariable=self.username)
-        entry_username.pack()
+        frame_labels_up = tk.Frame(self)
+        frame_labels_up.pack(fill="x", pady=(5, 0))
 
-        label_password = tk.Label(self, text="Your directus password:")
-        label_password.pack()
-        entry_password = tk.Entry(self, textvariable=self.password, show="*")
-        entry_password.pack()
+        label_username = tk.Label(frame_labels_up, text="Directus username:")
+        label_username.pack(side="left", padx=8, anchor="center")
+        label_password = tk.Label(frame_labels_up, text="Directus password:   ")
+        label_password.pack(side="right", padx=(0, 2),anchor="center")
 
-        label_operator = tk.Label(self, text="operator's initials:")
-        label_operator.pack()
-        entry_operator = tk.Entry(self, textvariable=self.operator)
-        entry_operator.pack()
+        frame_entries_up = tk.Frame(self)
+        frame_entries_up.pack(fill="x", pady=5)
 
-        label_col_rack_number = tk.Label(self, text="Number of columns in racks:")
-        label_col_rack_number.pack()
-        entry_col_rack_number = tk.Entry(self, textvariable=self.col_rack_number)
-        self.col_rack_number.set("9")  # Default value
-        entry_col_rack_number.pack()
+        entry_username = tk.Entry(frame_entries_up, textvariable=self.username)
+        entry_username.pack(side="left", anchor="center")
+        entry_password = tk.Entry(frame_entries_up, textvariable=self.password, show="*")
+        entry_password.pack(side="right", anchor="center")
+        
+        frame_labels_om = tk.Frame(self)
+        frame_labels_om.pack(fill="x", pady=(5, 0))
 
-        label_row_rack_number = tk.Label(self, text="Number of places in racks:")
-        label_row_rack_number.pack()
-        entry_row_rack_number = tk.Entry(self, textvariable=self.row_rack_number)
-        self.row_rack_number.set("6")  # Default value
-        entry_row_rack_number.pack()
+        label_operator = tk.Label(frame_labels_om, text="Operator's initials:")
+        label_operator.pack(side="left", padx=10, anchor="center")
 
-        label_inj_volume = tk.Label(self, text="Injection volume (in µL):")
-        label_inj_volume.pack()
-        entry_inj_volume = tk.Entry(self, textvariable=self.inj_volume)
-        self.inj_volume.set("2") # Default value
-        entry_inj_volume.pack()
+        label_ms = tk.Label(frame_labels_om, text="Mass spectrometer ID:")
+        label_ms.pack(side="right", anchor="center")
 
-        output_label = tk.Label(self, text="Select the output path for the sample list")
-        output_label.pack()
-        output_button = tk.Button(self, text="select path", command=self.output_folder)
-        output_button.pack()
+        frame_entries_om = tk.Frame(self)
+        frame_entries_om.pack(fill="x", pady=(5, 0))
 
-        button_submit = tk.Button(self, text="Submit", command=self.show_values)
-        button_submit.pack()
+        entry_operator = tk.Entry(frame_entries_om, textvariable=self.operator)
+        entry_operator.pack(side="left", anchor="center")
 
+        entry_ms = tk.Entry(frame_entries_om, textvariable=self.ms_id)
+        entry_ms.pack(side="right", anchor="center")
+
+        frame_label_rack = tk.Frame(self)
+        frame_label_rack.pack(fill="x", pady=(5, 0))
+
+        label_col_rack_number = tk.Label(frame_label_rack, text="Rack size (columns x rows)")
+        label_col_rack_number.pack(side="bottom", anchor="center")
+
+        frame_entries_rack = tk.Frame(self)
+        frame_entries_rack.pack(fill="x", pady=(5, 0))
+
+        entry_col_rack_number = tk.Entry(frame_entries_rack, textvariable=self.col_rack_number)
+        self.col_rack_number.set("9")
+        entry_col_rack_number.pack(side="left", anchor="center")
+
+        label_x = tk.Label(frame_entries_rack, text="x")
+        label_x.pack(side="left", padx=40, anchor="center")
+
+        entry_row_rack_number = tk.Entry(frame_entries_rack, textvariable=self.row_rack_number)
+        self.row_rack_number.set("6")
+        entry_row_rack_number.pack(side="right", anchor="center")
+
+        frame_labels_paths = tk.Frame(self)
+        frame_labels_paths.pack(fill="x", pady=(5, 0))
+
+        label_method_path = tk.Label(frame_labels_paths, text="Method file:")
+        label_method_path.pack(side="left", padx=25, anchor="center")
+
+        label_data_path = tk.Label(frame_labels_paths, text="MS data directory")
+        label_data_path.pack(side="right", padx=(0, 15), anchor="center")
+
+        frame_entries_paths = tk.Frame(self)
+        frame_entries_paths.pack(fill="x", pady=(5, 0))
+
+        self.method_path_button = tk.Button(frame_entries_paths, text="method", command=self.method_file)
+        self.method_path_button.pack(side="left", padx=35, anchor="center")
+
+        self.data_path_button = tk.Button(frame_entries_paths, text="output", command=self.data_folder)
+        self.data_path_button.pack(side="right", padx=40, anchor="center")
+
+        frame_label_io = tk.Frame(self)
+        frame_label_io.pack(fill="x", pady=(5, 0))
+
+        label_inj_volume = tk.Label(frame_label_io, text="Injection volume (µL):")
+        label_inj_volume.pack(side="left")
+
+        label_output_path = tk.Label(frame_label_io, text="Sample list output directory: ")
+        label_output_path.pack(side="right")
+
+        frame_entries_io = tk.Frame(self)
+        frame_entries_io.pack(fill="x", pady=(5, 0))
+
+        entry_inj_volume = tk.Entry(frame_entries_io, textvariable=self.inj_volume)
+        self.inj_volume.set("2")
+        entry_inj_volume.pack(side="left")
+
+        self.output_path_button = tk.Button(frame_entries_io, text="output", command=self.output_folder)
+        self.output_path_button.pack(side="right", anchor="center", padx=(0, 40))
+
+        frame_submit = tk.Frame(self)
+        frame_submit.pack(pady=(20, 0))
+
+        button_submit = tk.Button(frame_submit, text="Confirm", command=self.show_values)
+        button_submit.pack(side="right")
+
+    def data_folder(self):
+        data_folder = filedialog.askdirectory()
+        if data_folder:
+            os.environ['data_folder'] = data_folder
+            parts = data_folder.split("/")
+            folder = parts[-1]
+            self.data_path_button.config(text=folder)
+    
     def output_folder(self):
-        os.environ['output_folder'] = filedialog.askdirectory()
+        output_folder = filedialog.askdirectory()
+        if output_folder:
+            os.environ['output_folder'] = output_folder
+            parts = output_folder.split("/")
+            folder = parts[-1]
+            self.output_path_button.config(text=folder)
+
+    def method_file(self):
+        method_file = filedialog.askopenfilename(filetypes=[("methods", "*.meth")])
+        #method_file = filedialog.askopenfilename().split(".")[0]
+        if method_file:
+            os.environ['method_file'] = method_file
+            parts = method_file.split("/")
+            self.file = parts[-1]
+            self.method_path_button.config(text=self.file)
 
     def show_values(self):
         # Retrieve the entered values
         os.environ['username'] = self.username.get()
         os.environ['password'] = self.password.get()
         os.environ['operator'] = self.operator.get()
+        os.environ['ms_id'] = self.ms_id.get()
         os.environ['col_rack_number'] = str(self.col_rack_number.get())
         os.environ['row_rack_number'] = str(self.row_rack_number.get())
         os.environ['inj_volume'] = str(self.inj_volume.get())
@@ -102,18 +181,22 @@ class HomeWindow(tk.Frame):
         operator = os.environ.get("operator")
 
         output_folder = os.environ.get("output_folder")
-        csv_window = CsvWindow(root=window, csv_path=f"{output_folder}/{datetime.now().strftime('%Y%m%d%H%M')}_{operator}_dbgi_pos.csv")
-        csv_window.pack()
+        csv_window = CsvWindow(root=window, csv_path=f"{output_folder}/{datetime.now().strftime('%Y%m%d')}_{operator}_dbgi_{self.file}.csv")
+        csv_window()
         
     def testConnection(self):
         username = os.environ.get("username")
         password = os.environ.get("password")
-        output_folder = os.environ.get("output_folder")
+        operator = os.environ.get("operator")
+        ms_id = os.environ.get("ms_id")
         col_rack_number = os.environ.get("col_rack_number")
         row_rack_number = os.environ.get("row_rack_number")
         inj_volume = os.environ.get("inj_volume")
+        method_file = os.environ.get("method_file")
+        data_folder = os.environ.get("data_folder")
+        output_folder = os.environ.get("output_folder")
 
-        if username and password and output_folder and col_rack_number and row_rack_number and inj_volume:
+        if username and password and operator and ms_id and col_rack_number and row_rack_number and inj_volume and method_file and data_folder and output_folder:
             # Define the Directus base URL
             base_url = 'http://directus.dbgi.org'
 
@@ -131,8 +214,34 @@ class HomeWindow(tk.Frame):
                 access_token = data['access_token']
                 os.environ['access_token'] = str(access_token)
 
-                # Hide the main page and open Window 2
-                self.open_CsvWindow()
+                access_token = os.environ.get("access_token")
+                base_url = 'http://directus.dbgi.org'
+                collection_url = base_url + f'/items/Injection_Methods/{self.file}'
+                session = requests.Session()
+                session.headers.update({'Authorization': f'Bearer {access_token}'})
+                #collection_url = base_url + '/items/samples'
+                response = session.get(collection_url)
+                value = response.status_code
+                if value == 200:
+                    # Hide the main page and open Window 2
+                    self.open_CsvWindow()
+                else:
+                    # Send data to directus
+                    base_url = 'http://directus.dbgi.org'
+                    collection_url = base_url + '/items/Injection_Methods'
+                    session = requests.Session()
+                    session.headers.update({'Authorization': f'Bearer {access_token}'})
+
+                    #Add headers
+                    headers = {'Content-Type': 'application/json'}
+
+                    data = {'method_name': self.file}
+        
+                    response = session.post(url=collection_url, headers=headers, json=data)
+    
+                    if response.status_code == 200:
+                        # Hide the main page and open Window 2
+                        self.open_CsvWindow() 
             
             else:
                 # Recreate the main page
@@ -156,22 +265,27 @@ class HomeWindow(tk.Frame):
 
 class CsvWindow:
     def __init__(self, root, csv_path):
+        print("This error doesn't impact the behaviour. It will be corrected in nex versions")
         self.root = root
         self.root.title("Mass spec sample list")
 
         self.operator = os.environ.get("operator")
+        self.ms_id = os.environ.get("ms_id")
         self.col_rack_size = int(os.environ.get("col_rack_number"))
         self.row_rack_size = int(os.environ.get("row_rack_number"))
         self.inj_volume = int(os.environ.get("inj_volume"))
         self.access_token = os.environ.get("access_token")
+        self.method_file = os.environ.get("method_file")
+        self.data_path = os.environ.get("data_folder")
         self.csv_path = csv_path
         self.current_position = 1
         self.current_row = 1
 
         # Create Treeview widget
-        self.tree = ttk.Treeview(root, columns=("aliquot_id", "operator", "File Name", "Path", "Instrument Method", "Position", "Inj Vol"), show="headings", selectmode="browse")
+        self.tree = ttk.Treeview(root, columns=("aliquot_id", "operator", "ms_id", "File Name", "Path", "Instrument Method", "Position", "Inj Vol"), show="headings", selectmode="browse")
         self.tree.heading("aliquot_id", text="aliquot_id")
         self.tree.heading("operator", text="operator")
+        self.tree.heading("ms_id", text="ms_id")
         self.tree.heading("File Name", text="File Name")
         self.tree.heading("Path", text="Path")
         self.tree.heading("Instrument Method", text="Instrument Method")
@@ -188,16 +302,12 @@ class CsvWindow:
         self.label = ttk.Label(text="")
         self.label.grid(row=2, column=0, columnspan=2, pady=10)
 
-        # Delete line button
-        delete_button = ttk.Button(root, text="Delete selected line", command=self.delete_line)
-
         # Submit button
         submit_button = ttk.Button(root, text="Generate sample list", command=self.submit_table)
 
         # Grid layout for widgets
         self.tree.grid(row=0, column=0, padx=10, pady=10, columnspan=2)
         self.aliquot_id_entry.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        delete_button.grid(row=3, column=0, columnspan=2, pady=10)
         submit_button.grid(row=3, column=1, columnspan=2, pady=10)
         
         
@@ -208,15 +318,17 @@ class CsvWindow:
 
         # Check if aliquot_id is not empty
         if not aliquot_id:
-            # Display an error message or handle it as needed
-            print("Error: Aliquot ID cannot be empty!")
+            # Display an error message
+            self.label.config(text="aliquot id can't be empty!", foreground="red")
             return
+        
+        parts = self.method_file.split("/")
+        file = parts[-1]
 
         # Placeholder calculations for other columns
-        operator = self.operator
-        filename = datetime.now().strftime("%Y%m%d%H%M") + "_" + self.operator + "_" + aliquot_id
-        path = "C:\Xcalibur\Data"
-        instrument_method = r"C:\Xcalibur\methods\new_methods\Metabo_MAPP\100mm_C18_15min_DDA_ELON_pos"
+        filename = datetime.now().strftime("%Y%m%d") + "_" + self.operator + "_" + aliquot_id + "_" + file
+        path = self.data_path.replace("/", "\\")
+        instrument_method = self.method_file.replace("/", "\\")
         inj_volume = self.inj_volume
 
         # Send data to directus
@@ -230,8 +342,9 @@ class CsvWindow:
 
         data = {'aliquot_id': aliquot_id,
                 'mass_spec_id': filename,
+                'ms_id': self.ms_id,
                 'injection_volume': inj_volume,
-                'injection_method': "100mm_C18_15min_DDA_ELON_pos"}
+                'injection_method': file}
         
         response = session.post(url=collection_url, headers=headers, json=data)
 
@@ -268,7 +381,7 @@ class CsvWindow:
             # display success message
             self.label.config(text="Correctly added!", foreground="green")
             # Insert data into Treeview
-            item_id = self.tree.insert("", "end", values=(aliquot_id, operator, filename, path, instrument_method, position, inj_volume))
+            item_id = self.tree.insert("", "end", values=(aliquot_id, self.operator, self.ms_id, filename, path, instrument_method, position, inj_volume))
 
             # Scroll to the last added row
             self.tree.see(item_id)
@@ -282,15 +395,12 @@ class CsvWindow:
         else:
             self.label.config(text="Directus error, check your entry!", foreground="red")
 
-    def delete_line(self):
-        print("delete line")
-
     def submit_table(self):
         # Get all items from the Treeview
         all_items = self.tree.get_children()
         # Check if there are any rows to export
         if not all_items:
-            print("No data to export.")
+            self.label.config(text="No data to export!", foreground="red")
             return
 
         # Extract data from the Treeview
@@ -304,7 +414,7 @@ class CsvWindow:
             # Write data
             csv_writer.writerows(data_to_export)
 
-        print(f"CSV file created: {self.csv_path}")
+        self.label.config(text=f"CSV file created: {self.csv_path}", foreground="green")
 
         # Close the Tkinter window
         self.root.destroy()
@@ -329,8 +439,8 @@ class CsvWindow:
             self.root.event_generate('<Return>')
             
         else:
-            # Print error statement
-            print("Reconnexion to directus failed")
+            # Display error statement
+            self.label.config(text="Reconnexion to directus failed", foreground="red")
 
 class AskBoxPrefixWindow(tk.Frame):
     def __init__(self, root):
