@@ -26,7 +26,7 @@ class HomeWindow(tk.Frame):
 
         if not error1 and not error2:
             # Create widgets for the main page
-            label = tk.Label(self, text="Connect to directus and select where the CSV will be stored")
+            label = tk.Label(self, text="Connect to directus and adjust the parameters")
             label.pack()
         elif error1:
             # Create widgets for the main page
@@ -154,8 +154,7 @@ class HomeWindow(tk.Frame):
             self.output_path_button.config(text=folder)
 
     def method_file(self):
-        method_file = filedialog.askopenfilename(filetypes=[("methods", "*.meth")])
-        #method_file = filedialog.askopenfilename().split(".")[0]
+        method_file = filedialog.askopenfilename(filetypes=[("methods", "*.meth")]).split(".")[0]
         if method_file:
             os.environ['method_file'] = method_file
             parts = method_file.split("/")
@@ -404,7 +403,7 @@ class CsvWindow:
             return
 
         # Extract data from the Treeview
-        data_to_export = [self.tree.item(item, 'values')[2:] for item in all_items]  # Skip the first two elements
+        data_to_export = [self.tree.item(item, 'values')[3:] for item in all_items]  # Skip the first two elements
 
         # Write data to the CSV file
         with open(self.csv_path, "w", newline="") as csv_file:
