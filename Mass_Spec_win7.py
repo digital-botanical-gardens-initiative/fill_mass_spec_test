@@ -264,7 +264,7 @@ class HomeWindow(tk.Frame):
 
 class CsvWindow:
     def __init__(self, root, csv_path):
-        print("This error doesn't impact the behaviour. It will be corrected in nex versions")
+        print("This error doesn't impact the behaviour. It will be corrected in next versions")
         self.root = root
         self.root.title("Mass spec sample list")
 
